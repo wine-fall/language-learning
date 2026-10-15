@@ -1,0 +1,7 @@
+/target
+# Never commit media or real subtitle files; tests use synthetic fixtures only.
+*.m4a
+*.mp3
+*.wav
+*.aac
+/data/
