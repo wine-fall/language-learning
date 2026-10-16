@@ -183,24 +183,52 @@ fn draw_continuous(f: &mut Frame, app: &App, area: Rect) {
 fn draw_sentence(f: &mut Frame, app: &App, area: Rect) {
     let scene = app.current_scene();
     let (marked, unclear) = app.scene_marks();
-    let mut lines = vec![
-        Line::from(vec![
-            Span::styled(
-                format!("第 {}/{} 句", app.cursor - scene.start + 1, scene.len()),
-                Style::new().add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(format!("  #{}", app.cursor + 1), Style::new().fg(DIM)),
-            Span::raw("  "),
-            mark_span(app.mark(app.cursor)),
-            Span::styled(
-                format!("    本场已标记 {marked}/{} · 没听清 {unclear}", scene.len()),
-                Style::new().fg(DIM),
-            ),
-        ]),
-        Line::raw(""),
-    ];
-    lines.extend(sentence_lines(app, app.cursor));
-    f.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), area);
+    let info = Line::from(vec![
+        Span::styled(
+            format!("第 {}/{} 句", app.cursor - scene.start + 1, scene.len()),
+            Style::new().add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(format!("  #{}", app.cursor + 1), Style::new().fg(DIM)),
+        Span::raw("  "),
+        mark_span(app.mark(app.cursor)),
+        Span::styled(
+            format!("    本场已标记 {marked}/{} · 没听清 {unclear}", scene.len()),
+            Style::new().fg(DIM),
+        ),
+    ]);
+    render_centered(f, area, Some(info), sentence_lines(app, app.cursor));
+}
+
+/// Renders `pinned` on the first row of `area` and `body` vertically centred
+/// in the rest, so short content does not leave the bottom of the panel
+/// empty. Content taller than the space starts at the top as usual.
+pub fn render_centered(
+    f: &mut Frame,
+    area: Rect,
+    pinned: Option<Line<'static>>,
+    body: Vec<Line<'static>>,
+) {
+    let mut rest = area;
+    if let Some(line) = pinned {
+        let pinned = Paragraph::new(line).wrap(Wrap { trim: false });
+        // Keep one blank row between the pinned line and the body.
+        let rows = (pinned.line_count(area.width) as u16 + 1).min(area.height);
+        f.render_widget(
+            pinned,
+            Rect {
+                height: rows,
+                ..area
+            },
+        );
+        rest.y += rows;
+        rest.height -= rows;
+    }
+    let body = Paragraph::new(body).wrap(Wrap { trim: false });
+    let height = body.line_count(rest.width) as u16;
+    let pad = rest.height.saturating_sub(height) / 2;
+    rest.y += pad;
+    rest.height -= pad;
+    f.render_widget(body, rest);
 }
 
 fn draw_relisten(f: &mut Frame, app: &App, area: Rect) {
@@ -539,6 +567,76 @@ pub mod tests {
             }
         }
         panic!("{word:?} not found on a {row:?} row in\n{}", text_of(buf));
+    }
+
+    /// Rows of the bordered panel's interior: (first row, rows), as text lines.
+    pub fn panel_rows(text: &str) -> Vec<String> {
+        let lines: Vec<&str> = text.lines().collect();
+        let top = lines.iter().position(|l| l.starts_with('┌')).unwrap();
+        let bottom = lines.iter().rposition(|l| l.starts_with('└')).unwrap();
+        lines[top + 1..bottom]
+            .iter()
+            .map(|l| {
+                l.trim_start_matches('│')
+                    .trim_end()
+                    .trim_end_matches('│')
+                    .trim()
+                    .to_string()
+            })
+            .collect()
+    }
+
+    /// Asserts the panel content after the first `pinned` rows is vertically
+    /// centred: the blank rows above and below differ by at most one.
+    pub fn assert_centered(text: &str, pinned: usize) {
+        let rows = panel_rows(text);
+        let body = &rows[pinned..];
+        let first = body
+            .iter()
+            .position(|r| !r.is_empty())
+            .expect("empty panel");
+        let last = body.iter().rposition(|r| !r.is_empty()).unwrap();
+        let (above, below) = (first, body.len() - 1 - last);
+        assert!(
+            above.abs_diff(below) <= 1,
+            "above {above}, below {below}\n{text}"
+        );
+        assert!(above >= 2, "content should not hug the top\n{text}");
+    }
+
+    #[test]
+    fn sentence_panel_is_vertically_centred() {
+        let (mut app, _) = app();
+        app.enter_stage(Stage::Intensive);
+        let text = text_of(&render(100, 24, |f| draw(f, &app)));
+        let rows = panel_rows(&text);
+        assert!(
+            rows[0].starts_with("第 1/24 句"),
+            "info stays on top\n{text}"
+        );
+        assert_centered(&text, 1);
+
+        // Still centred with the taller dictation result.
+        app.on_key(KeyCode::Char('d'));
+        for c in "well this is synthetic line".chars() {
+            app.on_key(KeyCode::Char(c));
+        }
+        app.on_key(KeyCode::Enter);
+        let text = text_of(&render(100, 24, |f| draw(f, &app)));
+        assert!(text.contains("多打的词：well"), "{text}");
+        assert_centered(&text, 1);
+    }
+
+    #[test]
+    fn tall_content_starts_at_the_top() {
+        let (mut app, _) = app();
+        app.enter_stage(Stage::Intensive);
+        app.on_key(KeyCode::Char('c'));
+        // Panel interior: 3 rows; the info line and the subtitle must show.
+        let text = text_of(&render(100, 10, |f| draw(f, &app)));
+        let rows = panel_rows(&text);
+        assert!(rows[0].starts_with("第 1/24 句"), "{text}");
+        assert_eq!(rows[2], "This is synthetic line number 1.", "{text}");
     }
 
     #[test]

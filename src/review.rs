@@ -9,13 +9,13 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Constraint, Layout};
 use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Paragraph, Wrap};
+use ratatui::widgets::{Block, Paragraph};
 
 use crate::app::{TAIL_MS, shift};
 use crate::player::Player;
 use crate::srt::Cue;
 use crate::state::State;
-use crate::ui::{ACCENT, DIM, help_popup};
+use crate::ui::{ACCENT, DIM, help_popup, render_centered};
 
 pub const REVIEW_HELP: &[(&str, &str)] = &[
     ("space", "播放 / 重播原句音频"),
@@ -233,16 +233,16 @@ impl Review {
             header,
         );
         let block = Block::bordered().border_style(Style::new().fg(DIM));
-        let lines = match self.card_index() {
-            None => self.summary_lines(),
-            Some(idx) => self.card_lines(idx),
+        let inner = block.inner(body);
+        f.render_widget(block, body);
+        let (pinned, lines) = match self.card_index() {
+            None => (None, self.summary_lines()),
+            Some(idx) => {
+                let (meta, lines) = self.card_lines(idx);
+                (Some(meta), lines)
+            }
         };
-        f.render_widget(
-            Paragraph::new(lines)
-                .wrap(Wrap { trim: false })
-                .block(block),
-            body,
-        );
+        render_centered(f, inner, pinned, lines);
         f.render_widget(
             Paragraph::new(self.message.as_str()).fg(Color::Yellow),
             message,
@@ -263,7 +263,8 @@ impl Review {
         }
     }
 
-    fn card_lines(&self, idx: usize) -> Vec<Line<'static>> {
+    /// The card's source line (kept at the top) and its body.
+    fn card_lines(&self, idx: usize) -> (Line<'static>, Vec<Line<'static>>) {
         let card = &self.state.cards[idx];
         let source = Path::new(&card.file)
             .file_name()
@@ -276,17 +277,14 @@ impl Review {
             Style::new().fg(DIM),
         );
         if !self.flipped {
-            return vec![
-                meta,
-                Line::raw(""),
+            let lines = vec![
                 Line::from("听原句，回想其中的重点表达和它的意思。"),
                 Line::raw(""),
                 Line::styled("Enter 翻面", Style::new().fg(DIM)),
             ];
+            return (meta, lines);
         }
         let mut lines = vec![
-            meta,
-            Line::raw(""),
             Line::styled(
                 card.expression.clone(),
                 Style::new().fg(ACCENT).add_modifier(Modifier::BOLD),
@@ -303,7 +301,7 @@ impl Review {
             "记得吗？y 记得 · n 忘了",
             Style::new().fg(DIM),
         ));
-        lines
+        (meta, lines)
     }
 
     fn summary_lines(&self) -> Vec<Line<'static>> {
@@ -364,7 +362,7 @@ mod tests {
     use crate::leitner::Schedule;
     use crate::player::NullPlayer;
     use crate::state::Card;
-    use crate::ui::tests::{render, text_of};
+    use crate::ui::tests::{assert_centered, panel_rows, render, text_of};
     use std::cell::RefCell;
     use std::rc::Rc;
 
@@ -495,6 +493,31 @@ mod tests {
         r.on_key(KeyCode::Enter);
         r.show_help = true;
         render(12, 3, |f| r.draw(f));
+    }
+
+    #[test]
+    fn card_content_is_vertically_centred() {
+        let (mut r, _) = review(vec![card("/m/ep01.m4a", 7, "hang out", 100)], false);
+        let text = text_of(&render(80, 24, |f| r.draw(f)));
+        assert!(
+            panel_rows(&text)[0].starts_with("来源 ep01.m4a #7"),
+            "{text}"
+        );
+        assert_centered(&text, 1);
+
+        r.on_key(KeyCode::Enter);
+        let text = text_of(&render(80, 24, |f| r.draw(f)));
+        assert!(
+            panel_rows(&text)[0].starts_with("来源 ep01.m4a #7"),
+            "{text}"
+        );
+        assert!(text.contains("Well, hang out is the point."), "{text}");
+        assert_centered(&text, 1);
+
+        r.on_key(KeyCode::Char('y'));
+        let text = text_of(&render(80, 24, |f| r.draw(f)));
+        assert!(text.contains("复习完成"), "{text}");
+        assert_centered(&text, 0);
     }
 
     #[test]
