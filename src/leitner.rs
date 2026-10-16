@@ -40,13 +40,18 @@ impl Schedule {
     }
 }
 
-/// Days since 1970-01-01 in UTC.
+/// Today's day number in the local time zone (UTC if the local offset
+/// cannot be determined). Day numbers count days since 1970-01-01, the same
+/// numbering stored in `state.json` by earlier versions.
 pub fn today() -> i64 {
-    let secs = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0);
-    (secs / 86_400) as i64
+    let now = time::OffsetDateTime::now_local().unwrap_or_else(|_| time::OffsetDateTime::now_utc());
+    day_number(now.date())
+}
+
+/// Days from 1970-01-01 to `date`.
+pub fn day_number(date: time::Date) -> i64 {
+    let epoch = time::OffsetDateTime::UNIX_EPOCH.date();
+    i64::from(date.to_julian_day() - epoch.to_julian_day())
 }
 
 #[cfg(test)]
@@ -77,6 +82,53 @@ mod tests {
         let mut s = Schedule { level: 4, due: 10 };
         s.answer(false, 10);
         assert_eq!(s, Schedule { level: 1, due: 11 });
+    }
+
+    #[test]
+    fn day_numbers_follow_the_local_date() {
+        use time::{Date, Month, OffsetDateTime, UtcOffset};
+        let date = |y, m, d| Date::from_calendar_date(y, m, d).unwrap();
+        assert_eq!(day_number(date(1970, Month::January, 1)), 0);
+        assert_eq!(day_number(date(1969, Month::December, 31)), -1);
+        assert_eq!(day_number(date(2026, Month::October, 16)), 20_742);
+
+        // 07:30 on Oct 16 in UTC+8 is still Oct 15 in UTC: the day must
+        // already have changed locally.
+        let instant = OffsetDateTime::from_unix_timestamp(1_792_107_000).unwrap();
+        assert_eq!(instant.unix_timestamp() / 86_400, 20_741, "UTC day");
+        let east8 = instant.to_offset(UtcOffset::from_hms(8, 0, 0).unwrap());
+        assert_eq!((east8.hour(), east8.minute()), (7, 30));
+        assert_eq!(day_number(east8.date()), 20_742);
+        let west5 = instant.to_offset(UtcOffset::from_hms(-5, 0, 0).unwrap());
+        assert_eq!(day_number(west5.date()), 20_741);
+    }
+
+    #[test]
+    fn today_is_within_a_day_of_utc() {
+        let utc = day_number(time::OffsetDateTime::now_utc().date());
+        assert!((today() - utc).abs() <= 1);
+    }
+
+    #[test]
+    fn stored_day_numbers_stay_compatible() {
+        // A schedule written by the UTC-based version reads back unchanged,
+        // and the same day numbers are compared against the new `today`.
+        let s: Schedule = serde_json::from_str(r#"{"box":2,"due":20742}"#).unwrap();
+        assert_eq!(
+            s,
+            Schedule {
+                level: 2,
+                due: 20_742
+            }
+        );
+        let today =
+            day_number(time::Date::from_calendar_date(2026, time::Month::October, 16).unwrap());
+        assert!(s.is_due(today));
+        assert!(!s.is_due(today - 1));
+        assert_eq!(
+            serde_json::to_string(&s).unwrap(),
+            r#"{"box":2,"due":20742}"#
+        );
     }
 
     #[test]

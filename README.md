@@ -179,7 +179,8 @@ listen check path/to/episode.srt path/to/episode.words.json   # 校验 words.jso
 （含来源音频路径和句子序号，复习时据此回放原句）和复习调度。文件损坏时程序会报错
 退出而不是覆盖它。
 
-“今天”按 UTC 日期计算。
+复习的“今天”按本地时区的日期计算（取不到本地时区时退回 UTC）。日期在 `state.json` 里存为自
+1970-01-01 起的天数。
 
 ## 开发
 
