@@ -5,3 +5,8 @@
 *.wav
 *.aac
 /data/
+*.srt
+*.words.json
+*.rejected
+!/fixtures/*.srt
+!/fixtures/*.words.json
