@@ -11,13 +11,24 @@ Everything under `fixtures/` is made-up dialogue written for tests.
 
 ## 安装
 
+### Homebrew（macOS，推荐）
+
+```sh
+brew tap wine-fall/language-learning https://github.com/wine-fall/language-learning
+brew install listen
+```
+
+以后更新用 `brew upgrade listen`，卸载用 `brew uninstall listen`。
+
+### 从源码构建
+
 需要 Rust（stable，1.88 以上）。没有的话：
 
 ```sh
 curl https://sh.rustup.rs -sSf | sh
 ```
 
-### macOS
+#### macOS
 
 ```sh
 cargo build --release
@@ -28,7 +39,7 @@ cargo install --path .
 
 macOS 只需要 Xcode Command Line Tools（`xcode-select --install`，rustup 本身也需要），音频走 CoreAudio，不用装别的库。
 
-### Linux
+#### Linux
 
 真实音频播放依赖 ALSA 开发包（Debian/Ubuntu 上是 `libasound2-dev` 和
 `pkg-config`）。没有声卡或不想装时，可以构建不出声的版本，其余功能完全一样，

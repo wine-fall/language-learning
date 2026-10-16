@@ -1,0 +1,83 @@
+name: release
+
+# Push a tag like v0.1.0 to build macOS binaries, publish a GitHub Release,
+# and point Formula/listen.rb at the new archives.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        target: [aarch64-apple-darwin, x86_64-apple-darwin]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check tag matches Cargo.toml version
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          test "v$version" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME != v$version"; exit 1; }
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup target add ${{ matrix.target }}
+
+      - name: Test
+        if: matrix.target == 'aarch64-apple-darwin'
+        run: cargo test --release
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package
+        run: |
+          name=listen-$GITHUB_REF_NAME-${{ matrix.target }}
+          mkdir "$name"
+          cp target/${{ matrix.target }}/release/listen README.md LICENSE "$name"/
+          tar -czf "$name.tar.gz" "$name"
+          shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: listen-*.tar.gz*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish release
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes
+
+      - name: Update Formula/listen.rb
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          arm=$(cut -d' ' -f1 dist/listen-$GITHUB_REF_NAME-aarch64-apple-darwin.tar.gz.sha256)
+          intel=$(cut -d' ' -f1 dist/listen-$GITHUB_REF_NAME-x86_64-apple-darwin.tar.gz.sha256)
+          sed -i \
+            -e "s/^  version \".*\"/  version \"$version\"/" \
+            -e "/aarch64-apple-darwin/{n;s/sha256 \".*\"/sha256 \"$arm\"/}" \
+            -e "/x86_64-apple-darwin/{n;s/sha256 \".*\"/sha256 \"$intel\"/}" \
+            Formula/listen.rb
+          git diff --stat
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Formula: listen $version"
+          git push origin main
