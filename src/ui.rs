@@ -65,7 +65,7 @@ pub fn draw(f: &mut Frame, app: &App) {
     f.render_widget(stage_tabs(app.stage), tabs);
 
     let block = Block::bordered()
-        .title(format!(" {} ", app.stage.label()))
+        .title(format!(" {} ", app.stage.title()))
         .border_style(Style::new().fg(DIM));
     let inner = block.inner(body);
     f.render_widget(block, body);
@@ -94,7 +94,7 @@ fn stage_tabs(current: Stage) -> Paragraph<'static> {
         if n > 0 {
             spans.push(Span::styled(" › ", Style::new().fg(DIM)));
         }
-        let label = format!("{} {}", ["①", "②", "③", "④", "④"][n], stage.label());
+        let label = stage.title();
         spans.push(if *stage == current {
             Span::styled(label, Style::new().fg(ACCENT).add_modifier(Modifier::BOLD))
         } else {
@@ -492,6 +492,24 @@ pub mod tests {
         assert!(text.contains("合成的台词"), "{text}");
         assert!(text.contains("示例备注"), "{text}");
         assert!(text.contains("静音模式"), "{text}");
+    }
+
+    #[test]
+    fn stage_numbers_are_distinct_everywhere() {
+        let (mut app, _) = app();
+        let numbers: Vec<_> = Stage::ALL.iter().map(|s| s.number()).collect();
+        assert_eq!(numbers, ["①", "②", "③", "④", "⑤"]);
+        for stage in Stage::ALL {
+            app.enter_stage(stage);
+            let text = text_of(&render(120, 20, |f| draw(f, &app)));
+            assert!(
+                text.contains("① 预习 › ② 盲听 › ③ 逐句精听 › ④ 复听 › ⑤ 无字幕连播"),
+                "{text}"
+            );
+            // The panel title repeats the current stage with the same number.
+            let title = format!("┌ {} ", stage.title());
+            assert!(text.contains(&title), "{text}");
+        }
     }
 
     #[test]

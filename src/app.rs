@@ -28,7 +28,7 @@ pub enum Stage {
     Intensive,
     /// ④ 复听: replay only the sentences marked unclear.
     Relisten,
-    /// ④ 复听 (end): the whole scene once more without subtitles.
+    /// ⑤ 无字幕连播: the whole scene once more without subtitles.
     Final,
 }
 
@@ -49,6 +49,22 @@ impl Stage {
             Stage::Relisten => "复听",
             Stage::Final => "无字幕连播",
         }
+    }
+
+    /// Circled step number, as shown in the stage bar and panel title.
+    pub fn number(self) -> &'static str {
+        match self {
+            Stage::Preview => "①",
+            Stage::Blind => "②",
+            Stage::Intensive => "③",
+            Stage::Relisten => "④",
+            Stage::Final => "⑤",
+        }
+    }
+
+    /// Number and label, e.g. "③ 逐句精听".
+    pub fn title(self) -> String {
+        format!("{} {}", self.number(), self.label())
     }
 
     /// Subtitles are never shown while listening to a whole scene.
