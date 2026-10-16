@@ -1,0 +1,179 @@
+1
+00:00:01,000 --> 00:00:02,800
+Hey, is anybody sitting here?
+
+2
+00:00:03,300 --> 00:00:05,100
+No, go ahead. Grab a seat.
+
+3
+00:00:05,600 --> 00:00:07,400
+Thanks. I'm totally beat.
+
+4
+00:00:07,900 --> 00:00:09,700
+Rough day at work?
+
+5
+00:00:10,200 --> 00:00:12,000
+You have no idea. My boss chewed me out again.
+
+6
+00:00:12,500 --> 00:00:14,300
+What for this time?
+
+7
+00:00:14,800 --> 00:00:16,600
+I showed up ten minutes late.
+
+8
+00:00:17,100 --> 00:00:18,900
+Ten minutes? Give me a break.
+
+9
+00:00:19,400 --> 00:00:21,200
+That's what I said!
+
+10
+00:00:21,700 --> 00:00:23,500
+Well, I wouldn't sweat it.
+
+11
+00:00:24,000 --> 00:00:25,800
+Easy for you to say. You work from home.
+
+12
+00:00:26,300 --> 00:00:28,100
+Fair enough.
+
+13
+00:00:28,600 --> 00:00:30,400
+So, are you still up for the movie tonight?
+
+14
+00:00:30,900 --> 00:00:32,700
+I don't know. I might bail.
+
+15
+00:00:33,200 --> 00:00:35,000
+Come on, you promised!
+
+16
+00:00:35,500 --> 00:00:37,300
+Okay, okay. I'll tag along.
+
+17
+00:00:37,800 --> 00:00:39,600
+Great. It starts at eight.
+
+18
+00:00:40,100 --> 00:00:41,900
+Let's grab a bite first.
+
+19
+00:00:42,400 --> 00:00:44,200
+Sounds like a plan.
+
+20
+00:00:44,700 --> 00:00:46,500
+I'm gonna get another coffee. You want one?
+
+21
+00:00:47,000 --> 00:00:48,800
+I'm good, thanks.
+
+22
+00:00:49,300 --> 00:00:51,100
+Suit yourself.
+
+23
+00:00:51,600 --> 00:00:53,400
+Wait, do you have change for a twenty?
+
+24
+00:00:53,900 --> 00:00:55,700
+Hang on, let me check.
+
+25
+00:01:02,200 --> 00:01:04,000
+So how was the movie?
+
+26
+00:01:04,500 --> 00:01:06,300
+Honestly? It was kind of a letdown.
+
+27
+00:01:06,800 --> 00:01:08,600
+Really? Everyone's raving about it.
+
+28
+00:01:09,100 --> 00:01:10,900
+The ending made no sense.
+
+29
+00:01:11,400 --> 00:01:13,200
+Maybe you just didn't get it.
+
+30
+00:01:13,700 --> 00:01:15,500
+Maybe. Or maybe it was just bad.
+
+31
+00:01:16,000 --> 00:01:17,800
+Did you at least have fun?
+
+32
+00:01:18,300 --> 00:01:20,100
+Sure. The popcorn was worth it.
+
+33
+00:01:20,600 --> 00:01:22,400
+You're impossible.
+
+34
+00:01:22,900 --> 00:01:24,700
+I'll take that as a compliment.
+
+35
+00:01:25,200 --> 00:01:27,000
+It wasn't one.
+
+36
+00:01:27,500 --> 00:01:29,300
+Anyway, I've got to run.
+
+37
+00:01:29,800 --> 00:01:31,600
+See you around?
+
+38
+00:01:32,100 --> 00:01:33,900
+Count on it.
+
+39
+00:01:34,400 --> 00:01:36,200
+Take care.
+
+40
+00:01:36,700 --> 00:01:38,500
+You too.
+
+41
+00:01:39,000 --> 00:01:40,800
+Don't forget your umbrella.
+
+42
+00:01:41,300 --> 00:01:43,100
+It's supposed to pour later.
+
+43
+00:01:43,600 --> 00:01:45,400
+Thanks for the heads-up.
+
+44
+00:01:45,900 --> 00:01:47,700
+Any time.
+
+45
+00:01:48,200 --> 00:01:50,000
+Bye now.

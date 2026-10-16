@@ -64,6 +64,40 @@ impl WordsFile {
     }
 }
 
+/// Problems in a words file relative to its subtitles, one message each.
+pub fn check(words: &WordsFile, cues: &[crate::srt::Cue]) -> Vec<String> {
+    let mut problems = Vec::new();
+    for item in &words.items {
+        let Some(cue) = item.cue.checked_sub(1).and_then(|i| cues.get(i)) else {
+            problems.push(format!(
+                "item {:?}: sentence {} does not exist (1-{})",
+                item.text,
+                item.cue,
+                cues.len()
+            ));
+            continue;
+        };
+        let sentence = cue.one_line().to_lowercase();
+        if !sentence.contains(&item.text.to_lowercase()) {
+            problems.push(format!(
+                "item {:?}: not found in sentence {} ({:?})",
+                item.text,
+                item.cue,
+                cue.one_line()
+            ));
+        }
+        if item.meaning.trim().is_empty() {
+            problems.push(format!("item {:?}: empty meaning", item.text));
+        }
+    }
+    for scene in &words.scenes {
+        if scene.start == 0 || scene.start > cues.len() {
+            problems.push(format!("scene start {} is out of range", scene.start));
+        }
+    }
+    problems
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -92,6 +126,23 @@ mod tests {
         assert_eq!(w.items[0].note.as_deref(), Some("z"));
         assert_eq!(w.scenes[1].start, 30);
         assert!(WordsFile::parse(r#"{"items":[{"cue":1}]}"#).is_err());
+    }
+
+    #[test]
+    fn check_reports_bad_items() {
+        let cues = crate::srt::parse("1\n00:00:01,000 --> 00:00:02,000\nCome on, hurry up!\n");
+        let w = WordsFile {
+            items: vec![item(1, "Hurry up"), item(1, "calm down"), item(2, "x")],
+            scenes: vec![SceneMark {
+                start: 5,
+                title: None,
+            }],
+        };
+        let p = check(&w, &cues);
+        assert_eq!(p.len(), 3, "{p:?}");
+        assert!(
+            p[0].contains("calm down") && p[1].contains("sentence 2") && p[2].contains("scene")
+        );
     }
 
     #[test]

@@ -1,0 +1,23 @@
+{
+  "items": [
+    { "cue": 2, "text": "grab a seat", "meaning": "坐吧；找个位子坐", "note": "grab 在口语里常表示“随手拿/占”" },
+    { "cue": 3, "text": "beat", "meaning": "累坏了" },
+    { "cue": 5, "text": "chewed me out", "meaning": "狠狠训斥了我", "note": "原形 chew someone out" },
+    { "cue": 8, "text": "Give me a break", "meaning": "得了吧；饶了我吧" },
+    { "cue": 10, "text": "sweat it", "meaning": "为此发愁", "note": "多用否定：don't sweat it" },
+    { "cue": 13, "text": "up for", "meaning": "有兴致做……" },
+    { "cue": 14, "text": "bail", "meaning": "临时放鸽子" },
+    { "cue": 16, "text": "tag along", "meaning": "跟着一起去" },
+    { "cue": 18, "text": "grab a bite", "meaning": "随便吃点东西" },
+    { "cue": 22, "text": "Suit yourself", "meaning": "随你便" },
+    { "cue": 26, "text": "letdown", "meaning": "令人失望的事" },
+    { "cue": 27, "text": "raving about", "meaning": "对……赞不绝口", "note": "原形 rave about" },
+    { "cue": 36, "text": "got to run", "meaning": "得走了" },
+    { "cue": 38, "text": "Count on it", "meaning": "一定；放心吧" },
+    { "cue": 43, "text": "heads-up", "meaning": "提醒；预先通知" }
+  ],
+  "scenes": [
+    { "start": 1, "title": "At the café" },
+    { "start": 25, "title": "The next day" }
+  ]
+}

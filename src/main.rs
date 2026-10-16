@@ -28,6 +28,8 @@ Usage:
   listen play <file.m4a>    study an episode (needs <file>.srt next to it)
   listen review [--all]     review saved expressions (--all: ignore due dates)
   listen cues <file.srt>    print sentence numbers used by words.json
+  listen check <file.srt> <file.words.json>
+                            validate a words.json against its subtitles
 
 Press ? inside the app for keys.";
 
@@ -39,6 +41,7 @@ fn main() -> ExitCode {
         ["review"] => review(false),
         ["review", "--all"] => review(true),
         ["cues", srt] => print_cues(Path::new(srt)),
+        ["check", srt, words] => check_words(Path::new(srt), Path::new(words)),
         ["-h" | "--help" | "help"] => {
             println!("{USAGE}");
             Ok(())
@@ -64,6 +67,23 @@ fn print_cues(path: &Path) -> Result<(), String> {
     for (i, cue) in srt::parse(&text).iter().enumerate() {
         println!("{}|{}", i + 1, cue.one_line());
     }
+    Ok(())
+}
+
+fn check_words(srt_path: &Path, words_path: &Path) -> Result<(), String> {
+    let cues = srt::parse(&read(srt_path)?);
+    let words = WordsFile::parse(&read(words_path)?)
+        .map_err(|e| format!("invalid {}: {e}", words_path.display()))?;
+    let problems = words::check(&words, &cues);
+    for p in &problems {
+        eprintln!("warning: {p}");
+    }
+    println!(
+        "{} items, {} scenes, {} warnings",
+        words.items.len(),
+        words.scenes.len(),
+        problems.len()
+    );
     Ok(())
 }
 
@@ -125,4 +145,22 @@ fn review(all: bool) -> Result<(), String> {
     let opener: review::Opener = Box::new(player::open);
     let mut screen = Review::new(state, Some(state_path), leitner::today(), all, opener);
     tui::run(&mut screen).map_err(|e| format!("terminal error: {e}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sample_fixture_is_consistent() {
+        let cues = srt::parse(include_str!("../fixtures/sample.srt"));
+        let words = WordsFile::parse(include_str!("../fixtures/sample.words.json")).unwrap();
+        assert_eq!(cues.len(), 45);
+        assert!(words::check(&words, &cues).is_empty());
+        let scenes = scene::scenes_for(&cues, &words.scenes);
+        assert_eq!(scenes.len(), 2);
+        assert_eq!(scenes[1].start, 24);
+        // Without scene marks, 45 sentences are too few to split.
+        assert_eq!(scene::split_by_gaps(&cues).len(), 1);
+    }
 }
