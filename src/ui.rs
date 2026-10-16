@@ -7,12 +7,15 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Clear, Gauge, Paragraph, Wrap};
 
 use crate::app::{App, Stage, fmt_offset, mark_label};
+use crate::dictation::Typed;
 use crate::srt::fmt_time;
 use crate::state::Mark;
 
 pub const ACCENT: Color = Color::Cyan;
 pub const OK: Color = Color::Green;
 pub const BAD: Color = Color::Red;
+/// Typed words that are not in the sentence at all.
+pub const EXTRA: Color = Color::Magenta;
 pub const DIM: Color = Color::DarkGray;
 
 pub const PLAY_HELP: &[(&str, &str)] = &[
@@ -228,7 +231,11 @@ fn draw_relisten(f: &mut Frame, app: &App, area: Rect) {
             Span::styled(text, style),
         ]));
     }
-    if app.relisten.contains(&app.cursor) && !app.subtitles {
+    // With subtitles on the list already shows the text; the detail block is
+    // still needed for the dictation box and its result.
+    let dictating =
+        app.input.is_some() || app.dictation.as_ref().is_some_and(|d| d.cue == app.cursor);
+    if app.relisten.contains(&app.cursor) && (!app.subtitles || dictating) {
         lines.push(Line::raw(""));
         lines.extend(sentence_lines(app, app.cursor));
     }
@@ -240,16 +247,25 @@ fn sentence_lines(app: &App, i: usize) -> Vec<Line<'static>> {
     let mut lines = Vec::new();
     let dictation = app.dictation.as_ref().filter(|d| d.cue == i);
     if let Some(d) = dictation {
-        lines.push(diff_line(&d.diff.reference, false));
+        lines.push(reference_line(&d.diff.reference));
         lines.push(Line::raw(""));
         let mut typed = vec![Span::styled("你的听写：", Style::new().fg(DIM))];
-        typed.extend(diff_line(&d.diff.typed, true).spans);
+        typed.extend(typed_line(&d.diff.typed).spans);
         lines.push(Line::from(typed));
+        let extra = d.diff.extra_words();
+        if !extra.is_empty() {
+            lines.push(Line::from(vec![
+                Span::styled("多打的词：", Style::new().fg(DIM)),
+                Span::styled(extra.join(" "), Style::new().fg(EXTRA)),
+            ]));
+        }
         let (ok, total) = d.diff.score();
-        lines.push(Line::styled(
-            format!("{ok}/{total} 词正确（绿色=听对，红色=漏听或听错）"),
-            Style::new().fg(DIM),
-        ));
+        lines.push(Line::from(vec![
+            Span::styled(format!("{ok}/{total} 词正确  "), Style::new().fg(DIM)),
+            Span::styled("绿=听对 ", Style::new().fg(OK)),
+            Span::styled("红=漏听/听错 ", Style::new().fg(BAD)),
+            Span::styled("紫=原句没有", Style::new().fg(EXTRA)),
+        ]));
     } else if app.text_visible() {
         for l in app.cues[i].text.split('\n') {
             lines.push(Line::from(l.to_string()).add_modifier(Modifier::BOLD));
@@ -293,26 +309,44 @@ fn sentence_lines(app: &App, i: usize) -> Vec<Line<'static>> {
     lines
 }
 
-/// Words coloured by whether they matched. Typed words that were wrong are
-/// crossed out; reference words that were missed are underlined.
-pub fn diff_line(words: &[(String, bool)], typed: bool) -> Line<'static> {
-    let mut spans = Vec::new();
-    for (n, (w, ok)) in words.iter().enumerate() {
-        if n > 0 {
-            spans.push(Span::raw(" "));
-        }
+/// The original sentence: heard words green, missed words red and underlined.
+fn reference_line(words: &[(String, bool)]) -> Line<'static> {
+    let styled = words.iter().map(|(w, ok)| {
         let style = if *ok {
             Style::new().fg(OK)
-        } else if typed {
-            Style::new().fg(BAD).add_modifier(Modifier::CROSSED_OUT)
         } else {
             Style::new()
                 .fg(BAD)
                 .add_modifier(Modifier::BOLD | Modifier::UNDERLINED)
         };
+        (w, style)
+    });
+    join_words(styled)
+}
+
+/// The dictation: matching words green, misheard words red and crossed out,
+/// words that are not in the sentence magenta and crossed out.
+fn typed_line(words: &[(String, Typed)]) -> Line<'static> {
+    let styled = words.iter().map(|(w, t)| {
+        let style = match t {
+            Typed::Ok => Style::new().fg(OK),
+            Typed::Wrong => Style::new().fg(BAD).add_modifier(Modifier::CROSSED_OUT),
+            Typed::Extra => Style::new().fg(EXTRA).add_modifier(Modifier::CROSSED_OUT),
+        };
+        (w, style)
+    });
+    join_words(styled)
+}
+
+fn join_words<'a>(words: impl Iterator<Item = (&'a String, Style)>) -> Line<'static> {
+    let mut spans = Vec::new();
+    for (w, style) in words {
+        if !spans.is_empty() {
+            spans.push(Span::raw(" "));
+        }
         spans.push(Span::styled(w.clone(), style));
     }
-    if words.is_empty() {
+    if spans.is_empty() {
         spans.push(Span::styled("（空）", Style::new().fg(DIM)));
     }
     Line::from(spans)
@@ -481,6 +515,32 @@ pub mod tests {
         panic!("{needle:?} not found in\n{}", text_of(buf));
     }
 
+    /// Style of `word` (a whole ASCII word) on the first row containing `row`.
+    fn word_style(buf: &Buffer, row: &str, word: &str) -> Style {
+        let lines: Vec<String> = text_of(buf).lines().map(String::from).collect();
+        for y in 0..buf.area.height {
+            if !lines[y as usize].contains(row) {
+                continue;
+            }
+            // Walk cells (not chars) so wide characters line up with x.
+            let cells: Vec<&str> = (0..buf.area.width).map(|x| buf[(x, y)].symbol()).collect();
+            for x in 0..cells.len() {
+                let fits = x + word.len() <= cells.len();
+                let is_word = fits
+                    && word
+                        .chars()
+                        .enumerate()
+                        .all(|(k, c)| cells[x + k] == c.to_string())
+                    && (x == 0 || cells[x - 1] == " ")
+                    && cells.get(x + word.len()).is_none_or(|c| *c == " ");
+                if is_word {
+                    return buf[(x as u16, y)].style();
+                }
+            }
+        }
+        panic!("{word:?} not found on a {row:?} row in\n{}", text_of(buf));
+    }
+
     #[test]
     fn renders_preview_page() {
         let (app, _) = app();
@@ -569,6 +629,66 @@ pub mod tests {
                 .contains(Modifier::CROSSED_OUT)
         );
         assert_eq!(style_of(&buf, "synthetic").fg, Some(OK));
+    }
+
+    #[test]
+    fn renders_extra_typed_words() {
+        let (mut app, _) = app();
+        app.enter_stage(Stage::Intensive);
+        app.on_key(KeyCode::Char('d'));
+        for c in "well this is a synthetic line number 1".chars() {
+            app.on_key(KeyCode::Char(c));
+        }
+        app.on_key(KeyCode::Enter);
+        let buf = render(100, 20, |f| draw(f, &app));
+        let text = text_of(&buf);
+        assert!(
+            text.contains("你的听写：well this is a synthetic line number 1"),
+            "{text}"
+        );
+        assert!(text.contains("多打的词：well a"), "{text}");
+        assert!(text.contains("6/6 词正确"), "{text}");
+        for word in ["well", "a"] {
+            let style = word_style(&buf, "你的听写", word);
+            assert_eq!(style.fg, Some(EXTRA), "{word}");
+            assert!(style.add_modifier.contains(Modifier::CROSSED_OUT));
+        }
+        assert_eq!(word_style(&buf, "你的听写", "synthetic").fg, Some(OK));
+        assert!(app.message.contains("多打 2 词"), "{}", app.message);
+    }
+
+    #[test]
+    fn relisten_shows_dictation_with_subtitles_on() {
+        let (mut app, _) = app();
+        app.state
+            .episode("/media/ep.m4a")
+            .marks
+            .insert(1, Mark::Unclear);
+        app.enter_stage(Stage::Relisten);
+        app.on_key(KeyCode::Char('c'));
+        app.on_key(KeyCode::Char('d'));
+        for c in "this is synthetic line number one more".chars() {
+            app.on_key(KeyCode::Char(c));
+        }
+        let text = text_of(&render(100, 20, |f| draw(f, &app)));
+        assert!(
+            text.contains("听写> this is synthetic line number one more"),
+            "{text}"
+        );
+        app.on_key(KeyCode::Enter);
+        let buf = render(100, 20, |f| draw(f, &app));
+        let text = text_of(&buf);
+        assert!(
+            text.contains("你的听写：this is synthetic line number one more"),
+            "{text}"
+        );
+        assert!(text.contains("多打的词：more"), "{text}");
+        assert_eq!(
+            word_style(&buf, "你的听写", "one").fg,
+            Some(BAD),
+            "misheard"
+        );
+        assert_eq!(word_style(&buf, "你的听写", "more").fg, Some(EXTRA));
     }
 
     #[test]

@@ -629,7 +629,12 @@ impl App {
                 let typed = self.input.take().unwrap_or_default();
                 let diff = dictation::compare(&self.cues[self.cursor].one_line(), &typed);
                 let (ok, total) = diff.score();
-                self.message = format!("听写 {ok}/{total} 词正确。y 听懂 · m 没听清");
+                let extra = diff.extra_words().len();
+                self.message = if extra > 0 {
+                    format!("听写 {ok}/{total} 词正确，多打 {extra} 词。y 听懂 · m 没听清")
+                } else {
+                    format!("听写 {ok}/{total} 词正确。y 听懂 · m 没听清")
+                };
                 self.dictation = Some(Dictation {
                     cue: self.cursor,
                     diff,
