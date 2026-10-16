@@ -140,6 +140,9 @@ impl App {
             }
         }
         app.cursor = app.current_scene().start;
+        // Park the player at the scene so quitting from the preview keeps it.
+        let start = app.scene_start_ms();
+        app.player.seek(start);
         app
     }
 
@@ -860,5 +863,9 @@ pub mod tests {
         );
         assert_eq!(app.scene, 1);
         assert_eq!(app.cursor, 24);
+        assert_eq!(app.player.position_ms(), app.cue_start(24));
+        let mut app = app;
+        app.quit();
+        assert_eq!(app.state.episodes["/media/ep.m4a"].position_ms, 69_000);
     }
 }

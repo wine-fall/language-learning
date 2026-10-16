@@ -489,6 +489,15 @@ mod tests {
     }
 
     #[test]
+    fn small_terminal_does_not_panic() {
+        let (mut r, _) = review(vec![card("/m/a.m4a", 1, "x", 0)], false);
+        render(12, 3, |f| r.draw(f));
+        r.on_key(KeyCode::Enter);
+        r.show_help = true;
+        render(12, 3, |f| r.draw(f));
+    }
+
+    #[test]
     fn renders_empty_state() {
         let (r, _) = review(vec![], false);
         let text = text_of(&render(80, 10, |f| r.draw(f)));
