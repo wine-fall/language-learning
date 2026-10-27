@@ -9,6 +9,33 @@ use std::time::Duration;
 
 use rodio::Source;
 
+/// Opens the default output device.
+///
+/// rodio asks for a fixed ~50 ms buffer (2048 frames at 44.1 kHz), which some
+/// Bluetooth headsets reject (their range tops out at 1024). In that case retry
+/// with the device's own default buffer size before giving up.
+fn open_sink() -> Result<rodio::MixerDeviceSink, String> {
+    let fixed = match rodio::DeviceSinkBuilder::open_default_sink() {
+        Ok(sink) => return Ok(sink),
+        Err(e) => e,
+    };
+    rodio::DeviceSinkBuilder::from_default_device()
+        .map(|b| b.with_buffer_size(rodio::cpal::BufferSize::Default))
+        .and_then(|b| b.open_stream())
+        .map_err(|_| format!("cannot open audio output: {}", error_chain(&fixed)))
+}
+
+fn error_chain(e: &dyn std::error::Error) -> String {
+    let mut text = e.to_string();
+    let mut source = e.source();
+    while let Some(inner) = source {
+        text.push_str(": ");
+        text.push_str(&inner.to_string());
+        source = inner.source();
+    }
+    text
+}
+
 pub struct RodioPlayer {
     path: PathBuf,
     // Field order matters: the player must drop before the device sink.
@@ -20,8 +47,7 @@ pub struct RodioPlayer {
 
 impl RodioPlayer {
     pub fn open(path: &Path) -> Result<Self, String> {
-        let mut sink = rodio::DeviceSinkBuilder::open_default_sink()
-            .map_err(|e| format!("cannot open audio output: {e}"))?;
+        let mut sink = open_sink()?;
         sink.log_on_drop(false);
         let player = rodio::Player::connect_new(sink.mixer());
         player.pause();
