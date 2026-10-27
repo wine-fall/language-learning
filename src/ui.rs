@@ -446,10 +446,10 @@ fn hint_line(app: &App) -> Paragraph<'static> {
                 "space 暂停/继续 · r 从头 · Enter 下一阶段 · ? 帮助 · q 退出"
             }
             Stage::Intensive => {
-                "space 继续 · r 重播 · d 听写 · y 听懂 · m 没听清 · c 字幕 · j/k 换句 · Enter 复听 · ?"
+                "space 继续 · r 重播 · d 听写 · y 听懂 · m 没听清 · c 字幕 · j/k 换句 · Enter 复听 ·  帮助 · q 退出"
             }
             Stage::Relisten => {
-                "space 依次回放 · j/k 选句 · r 重播 · d 听写 · y/m 改标 · Enter 连播 · ?"
+                "space 依次回放 · j/k 选句 · r 重播 · d 听写 · y/m 改标 · Enter 连播 ·  帮助 · q 退出"
             }
         }
     };
