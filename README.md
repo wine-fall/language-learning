@@ -181,7 +181,7 @@ Review uses a simple Leitner system: 5 boxes with intervals of 1 / 2 / 4 / 7 /
 ```json
 {
   "items": [
-    { "cue": 2, "text": "grab a seat", "meaning": "坐吧；找个位子坐", "note": "口语" },
+    { "cue": 2, "text": "grab a seat", "ipa": "ˈɡræb ə ˈsit", "meaning": "坐吧；找个位子坐", "note": "口语" },
     { "cue": 5, "text": "chewed me out", "meaning": "狠狠训斥了我", "note": "原形 chew someone out" }
   ],
   "scenes": [
@@ -198,6 +198,7 @@ Review uses a simple Leitner system: 5 boxes with intervals of 1 / 2 / 4 / 7 /
 | `cue` | integer | Sentence number, starting at 1, as printed by `listen cues` |
 | `text` | string | The expression as written in the sentence (so it can be highlighted there) |
 | `meaning` | string | Chinese gloss |
+| `ipa` | string, optional | American IPA without slashes, shown as `/…/` on the preview page and review cards |
 | `note` | string, optional | Extra note, such as the base form or tone |
 
 Several expressions in the same sentence map to number keys 1–9 in file order.

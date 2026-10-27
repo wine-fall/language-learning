@@ -20,6 +20,9 @@ pub struct Item {
     pub text: String,
     /// Short Chinese gloss.
     pub meaning: String,
+    /// Pronunciation in IPA, without slashes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ipa: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
 }
@@ -107,6 +110,7 @@ mod tests {
             cue,
             text: text.into(),
             meaning: "释义".into(),
+            ipa: None,
             note: None,
         }
     }
@@ -124,7 +128,13 @@ mod tests {
         )
         .unwrap();
         assert_eq!(w.items[0].note.as_deref(), Some("z"));
+        assert_eq!(w.items[0].ipa, None);
+
         assert_eq!(w.scenes[1].start, 30);
+
+        let w = WordsFile::parse(r#"{"items":[{"cue":1,"text":"x","ipa":"ɛks","meaning":"y"}]}"#)
+            .unwrap();
+        assert_eq!(w.items[0].ipa.as_deref(), Some("ɛks"));
         assert!(WordsFile::parse(r#"{"items":[{"cue":1}]}"#).is_err());
     }
 

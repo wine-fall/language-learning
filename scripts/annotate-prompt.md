@@ -19,10 +19,13 @@ Rules:
   in the line. Put the dictionary form, if different, in `note`.
 - `meaning`: a short Chinese gloss that fits this context (4-15 characters).
   Do not translate the whole sentence.
+- `ipa`: General American broad IPA for `text` exactly as written, with ˈ ˌ
+  stress marks and no slashes; for a phrase, one transcription with words
+  separated by spaces.
 - `note` is optional: one short Chinese remark about usage, tone or the
   dictionary form. Leave it out when there is nothing useful to say.
 - Do not output scenes.
 
 Output only one JSON object, with no code fences and no commentary:
 
-{"items": [{"cue": 12, "text": "grab a bite", "meaning": "随便吃点东西", "note": "口语"}]}
+{"items": [{"cue": 12, "text": "grab a bite", "ipa": "ˈɡræb ə ˈbaɪt", "meaning": "随便吃点东西", "note": "口语"}]}
