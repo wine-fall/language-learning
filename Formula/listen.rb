@@ -2,19 +2,19 @@
 class Listen < Formula
   desc "Terminal app for intensive English listening practice with spaced-repetition review"
   homepage "https://github.com/wine-fall/language-learning"
-  version "0.1.1"
+  version "0.1.2"
   license "MIT"
 
   depends_on :macos
 
   on_arm do
     url "https://github.com/wine-fall/language-learning/releases/download/v#{version}/listen-v#{version}-aarch64-apple-darwin.tar.gz"
-    sha256 "3fc35259f14a35fed766d6576467e3a9bec2691941416025c73b9b82d0e210ae"
+    sha256 "9c60615966c7cf35c40a06adb0b801dc158ef8326cbe31c8e8299003a905627b"
   end
 
   on_intel do
     url "https://github.com/wine-fall/language-learning/releases/download/v#{version}/listen-v#{version}-x86_64-apple-darwin.tar.gz"
-    sha256 "b845ddbd19f30ad8d818ffe2f281dea6cc0183f47517c8e03ab870abf1173a4e"
+    sha256 "bd42ea9d1fd9e60e0fcd8bb86f56632da24e97df9967e94aa5db879425414cc4"
   end
 
   def install
