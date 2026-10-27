@@ -130,10 +130,11 @@ mod tests {
         assert_eq!(w.items[0].note.as_deref(), Some("z"));
         assert_eq!(w.items[0].ipa, None);
 
+        assert_eq!(w.scenes[1].start, 30);
+
         let w = WordsFile::parse(r#"{"items":[{"cue":1,"text":"x","ipa":"ɛks","meaning":"y"}]}"#)
             .unwrap();
         assert_eq!(w.items[0].ipa.as_deref(), Some("ɛks"));
-        assert_eq!(w.scenes[1].start, 30);
         assert!(WordsFile::parse(r#"{"items":[{"cue":1}]}"#).is_err());
     }
 
