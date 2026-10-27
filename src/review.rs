@@ -284,12 +284,10 @@ impl Review {
             ];
             return (meta, lines);
         }
-        let mut lines = vec![
-            Line::styled(
-                card.expression.clone(),
-                Style::new().fg(ACCENT).add_modifier(Modifier::BOLD),
-            ),
-        ];
+        let mut lines = vec![Line::styled(
+            card.expression.clone(),
+            Style::new().fg(ACCENT).add_modifier(Modifier::BOLD),
+        )];
         if let Some(ipa) = &card.ipa {
             lines.push(Line::styled(format!("/{ipa}/"), Style::new().fg(DIM)));
         }
@@ -476,7 +474,10 @@ mod tests {
         assert!(text.contains("来源 ep01.m4a #7 · 第 2 档"), "{text}");
         assert!(!text.contains("hang out"), "front hides the answer: {text}");
         assert!(!text.contains("示例释义"), "{text}");
-        assert!(!text.contains("ˈhæŋ"), "front hides the pronunciation: {text}");
+        assert!(
+            !text.contains("ˈhæŋ"),
+            "front hides the pronunciation: {text}"
+        );
 
         r.on_key(KeyCode::Enter);
         let buf = render(80, 14, |f| r.draw(f));
