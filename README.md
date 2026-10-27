@@ -120,7 +120,9 @@ stages (①–⑤ at the top of the screen):
 
 To go through an episode in one go instead, run `listen play --whole`. The
 whole episode becomes a single scene, so the blind listen and the final run
-play it from start to finish.
+play it from start to finish. Sentence-by-sentence listening also keeps
+playing instead of pausing after each sentence; press `p` to turn the pause
+back on.
 
 During continuous playback, a stretch of 20 seconds or more without subtitles
 (usually the theme song) is skipped.
