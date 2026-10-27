@@ -89,6 +89,7 @@ set `FORCE=1`. To use another model, set `CLAUDE_ARGS="--model sonnet"`.
 
 ```sh
 listen play path/to/episode.m4a     # study an episode
+listen play --whole path/to/episode.m4a   # the whole episode as one scene
 listen review                       # review cards due today
 listen review --all                 # review every card, due or not
 listen cues path/to/episode.srt     # print sentence numbers (used by words.json "cue")
@@ -112,9 +113,17 @@ stages (①–⑤ at the top of the screen):
    aren't in the sentence are purple, crossed out and listed on their own.
    Case and punctuation are ignored, and contractions such as `it's` / `it is`
    or `don't` / `do not` count as the same. Then press `y` (understood) or `m`
-   (unclear) to move on.
+   (unclear) to move on. Once the English line is on screen, the sentence's
+   key expressions are listed under it with pronunciation and Chinese gloss.
 4. **④ Relisten**: replays only the sentences marked unclear.
 5. **⑤ Final run**: the whole scene once more, without subtitles.
+
+To go through an episode in one go instead, run `listen play --whole`. The
+whole episode becomes a single scene, so the blind listen and the final run
+play it from start to finish.
+
+During continuous playback, a stretch of 20 seconds or more without subtitles
+(usually the theme song) is skipped.
 
 | Preview | Dictation | Review |
 | --- | --- | --- |
@@ -125,8 +134,9 @@ original sentence from the episode; recall the expression, press Enter to see
 it with its gloss and the sentence, then grade yourself with `y` / `n`.
 
 Subtitles have two settings only: off, or full English. Chinese glosses appear
-only on the preview page and on review cards; whole-line translations are never
-shown.
+for individual expressions only, and only after you have heard the sentence:
+on the preview page, under a revealed sentence, and on review cards. Whole-line
+translations are never shown.
 
 This flow follows a few findings from second-language listening research:
 same-language (English) captions help more than native-language subtitles,

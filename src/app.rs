@@ -15,6 +15,10 @@ use crate::words::{Item, WordsFile};
 
 /// Extra audio after a sentence's end time so the last word is not clipped.
 pub const TAIL_MS: u64 = 150;
+/// Continuous playback skips subtitle-free stretches at least this long.
+pub const LONG_GAP_MS: u64 = 20_000;
+/// How early before the next sentence playback resumes after a skip.
+const GAP_LEAD_MS: u64 = 500;
 /// One press of `[` or `]`.
 pub const OFFSET_STEP_MS: i64 = 250;
 
@@ -293,6 +297,9 @@ impl App {
         let follows = matches!(self.stage, Stage::Blind | Stage::Final)
             || (self.stage == Stage::Intensive && !self.auto_pause);
         if playing && follows {
+            if self.skip_long_gap(pos) {
+                return;
+            }
             let i = self.cue_at(pos);
             self.set_cursor(i);
         }
@@ -300,6 +307,24 @@ impl App {
             self.was_playing = false;
             self.finished();
         }
+    }
+
+    /// During continuous playback, jumps over a subtitle-free stretch of at
+    /// least [`LONG_GAP_MS`] (the theme song, mostly) to just before the next
+    /// sentence. Returns whether it jumped.
+    fn skip_long_gap(&mut self, pos: u64) -> bool {
+        let i = self.cue_at_any(pos);
+        let Some(next) = (i + 1 < self.cues.len()).then(|| self.cue_start(i + 1)) else {
+            return false;
+        };
+        let end = self.cue_end(i);
+        let target = next.saturating_sub(GAP_LEAD_MS);
+        if next.saturating_sub(end) < LONG_GAP_MS || pos <= end || pos >= target {
+            return false;
+        }
+        self.player.play_range(target, Some(self.scene_end_ms()));
+        self.message = "已跳过一段没有台词的音乐".into();
+        true
     }
 
     /// A requested range has played to its end.
@@ -687,6 +712,7 @@ pub fn mark_label(m: Mark) -> &'static str {
 pub mod tests {
     use super::*;
     use crate::player::tests::manual;
+    use crate::words::SceneMark;
     use std::cell::Cell;
     use std::rc::Rc;
 
@@ -739,6 +765,44 @@ pub mod tests {
         for c in s.chars() {
             app.on_key(KeyCode::Char(c));
         }
+    }
+
+    #[test]
+    fn continuous_playback_skips_long_gaps() {
+        let mut cues = synthetic_cues();
+        for c in &mut cues[24..] {
+            c.start_ms += 30_000;
+            c.end_ms += 30_000;
+        }
+        let gap_start = cues[23].end_ms;
+        let next = cues[24].start_ms;
+        let mut words = synthetic_words();
+        words.scenes = vec![SceneMark {
+            start: 1,
+            title: None,
+        }];
+        let (player, now) = manual(Some(300_000));
+        let mut app = App::new(
+            "ep.m4a".into(),
+            "/media/ep.m4a".into(),
+            cues,
+            words,
+            State::default(),
+            None,
+            Box::new(player),
+        );
+        assert_eq!(app.scenes.len(), 1, "a single mark makes one scene");
+        app.enter_stage(Stage::Blind);
+        now.set(gap_start + TAIL_MS + 2_000);
+        app.tick();
+        assert_eq!(app.player.position_ms(), next - GAP_LEAD_MS);
+        assert!(app.player.is_playing());
+
+        // Ordinary pauses between sentences are left alone.
+        let pos = app.cue_end(2) + 100;
+        app.player.play_range(pos, Some(app.scene_end_ms()));
+        app.tick();
+        assert_eq!(app.player.position_ms(), pos);
     }
 
     #[test]

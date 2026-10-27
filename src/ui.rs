@@ -10,6 +10,7 @@ use crate::app::{App, Stage, fmt_offset, mark_label};
 use crate::dictation::Typed;
 use crate::srt::fmt_time;
 use crate::state::Mark;
+use crate::words::Item;
 
 pub const ACCENT: Color = Color::Cyan;
 pub const OK: Color = Color::Green;
@@ -126,20 +127,7 @@ fn draw_preview(f: &mut Frame, app: &App, area: Rect) {
         ));
     }
     for (n, item) in items.iter().enumerate() {
-        let mut spans = vec![
-            Span::styled(format!(" {} ", n + 1), Style::new().fg(DIM)),
-            star(app.is_saved(item)),
-            Span::styled(item.text.clone(), Style::new().add_modifier(Modifier::BOLD)),
-        ];
-        if let Some(ipa) = &item.ipa {
-            spans.push(Span::styled(format!("  /{ipa}/"), Style::new().fg(DIM)));
-        }
-        spans.push(Span::raw("  "));
-        spans.push(Span::raw(item.meaning.clone()));
-        if let Some(note) = &item.note {
-            spans.push(Span::styled(format!("  ({note})"), Style::new().fg(DIM)));
-        }
-        lines.push(Line::from(spans));
+        lines.push(item_line(n + 1, item, app.is_saved(item)));
     }
     lines.push(Line::raw(""));
     lines.push(Line::styled(
@@ -319,13 +307,10 @@ fn sentence_lines(app: &App, i: usize) -> Vec<Line<'static>> {
     if !items.is_empty() {
         lines.push(Line::raw(""));
         if app.text_visible() {
-            let mut spans = vec![Span::styled("重点表达：", Style::new().fg(DIM))];
+            lines.push(Line::styled("重点表达：", Style::new().fg(DIM)));
             for (n, item) in items.iter().enumerate() {
-                spans.push(Span::styled(format!("{} ", n + 1), Style::new().fg(DIM)));
-                spans.push(star(app.is_saved(item)));
-                spans.push(Span::raw(format!("{}   ", item.text)));
+                lines.push(item_line(n + 1, item, app.is_saved(item)));
             }
-            lines.push(Line::from(spans));
         } else {
             lines.push(Line::styled(
                 format!(
@@ -379,6 +364,24 @@ fn join_words<'a>(words: impl Iterator<Item = (&'a String, Style)>) -> Line<'sta
     }
     if spans.is_empty() {
         spans.push(Span::styled("（空）", Style::new().fg(DIM)));
+    }
+    Line::from(spans)
+}
+
+/// One expression: number, saved star, text, pronunciation, gloss and note.
+fn item_line(n: usize, item: &Item, saved: bool) -> Line<'static> {
+    let mut spans = vec![
+        Span::styled(format!(" {n} "), Style::new().fg(DIM)),
+        star(saved),
+        Span::styled(item.text.clone(), Style::new().add_modifier(Modifier::BOLD)),
+    ];
+    if let Some(ipa) = &item.ipa {
+        spans.push(Span::styled(format!("  /{ipa}/"), Style::new().fg(DIM)));
+    }
+    spans.push(Span::raw("  "));
+    spans.push(Span::raw(item.meaning.clone()));
+    if let Some(note) = &item.note {
+        spans.push(Span::styled(format!("  ({note})"), Style::new().fg(DIM)));
     }
     Line::from(spans)
 }
@@ -685,22 +688,21 @@ pub mod tests {
     }
 
     #[test]
-    fn renders_sentence_subtitles_and_no_chinese() {
+    fn sentence_glosses_appear_only_with_the_text() {
         let (mut app, _) = app();
         app.enter_stage(Stage::Intensive);
         let text = text_of(&render(100, 20, |f| draw(f, &app)));
         assert!(text.contains("字幕已关"), "{text}");
         assert!(!text.contains("This is synthetic"), "{text}");
         assert!(text.contains("本句有 1 个重点表达"), "{text}");
+        assert!(!text.contains("合成的台词"), "no gloss before the text: {text}");
 
         app.on_key(KeyCode::Char('c'));
         let text = text_of(&render(100, 20, |f| draw(f, &app)));
         assert!(text.contains("This is synthetic line number 1."), "{text}");
         assert!(text.contains("1 ☆ synthetic line"), "{text}");
-        assert!(
-            !text.contains("合成的台词"),
-            "Chinese gloss only on preview/cards"
-        );
+        assert!(text.contains("/sɪnˈθɛtɪk ˈlaɪn/"), "{text}");
+        assert!(text.contains("合成的台词"), "gloss once the text is shown: {text}");
     }
 
     #[test]

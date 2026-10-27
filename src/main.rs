@@ -19,13 +19,16 @@ use std::process::ExitCode;
 use crate::app::App;
 use crate::review::Review;
 use crate::state::State;
-use crate::words::WordsFile;
+use crate::words::{SceneMark, WordsFile};
 
 const USAGE: &str = "\
 listen — intensive listening practice in the terminal
 
 Usage:
   listen play <file.m4a>    study an episode (needs <file>.srt next to it)
+  listen play --whole <file.m4a>
+                            treat the whole episode as one scene: listen
+                            straight through instead of scene by scene
   listen review [--all]     review saved expressions (--all: ignore due dates)
   listen cues <file.srt>    print sentence numbers used by words.json
   listen check <file.srt> <file.words.json>
@@ -37,7 +40,8 @@ fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     let result = match args.as_slice() {
-        ["play", file] => play(Path::new(file)),
+        ["play", file] => play(Path::new(file), false),
+        ["play", "--whole", file] | ["play", file, "--whole"] => play(Path::new(file), true),
         ["review"] => review(false),
         ["review", "--all"] => review(true),
         ["cues", srt] => print_cues(Path::new(srt)),
@@ -97,7 +101,7 @@ fn load_state() -> Result<(State, PathBuf), String> {
     Ok((State::load(&path)?, path))
 }
 
-fn play(audio: &Path) -> Result<(), String> {
+fn play(audio: &Path, whole: bool) -> Result<(), String> {
     if !audio.is_file() {
         return Err(format!("audio file not found: {}", audio.display()));
     }
@@ -115,6 +119,13 @@ fn play(audio: &Path) -> Result<(), String> {
         let note = "没有 words.json：预习页为空（可用 scripts/annotate.sh 生成）";
         (WordsFile::default(), Some(note.to_string()))
     };
+    let mut words = words;
+    if whole {
+        words.scenes = vec![SceneMark {
+            start: 1,
+            title: Some("整集".into()),
+        }];
+    }
     let (state, state_path) = load_state()?;
 
     let key = std::fs::canonicalize(audio)
