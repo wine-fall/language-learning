@@ -145,6 +145,8 @@ fn play(audio: &Path, whole: bool) -> Result<(), String> {
     };
 
     let mut app = App::new(title, key, cues, words, state, Some(state_path), player);
+    // A whole episode is too long to stop after every sentence; `p` turns it back on.
+    app.auto_pause = !whole;
     if let Some(note) = audio_note.or(words_note) {
         app.message = note;
     }
