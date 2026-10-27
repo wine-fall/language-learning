@@ -130,9 +130,12 @@ fn draw_preview(f: &mut Frame, app: &App, area: Rect) {
             Span::styled(format!(" {} ", n + 1), Style::new().fg(DIM)),
             star(app.is_saved(item)),
             Span::styled(item.text.clone(), Style::new().add_modifier(Modifier::BOLD)),
-            Span::raw("  "),
-            Span::raw(item.meaning.clone()),
         ];
+        if let Some(ipa) = &item.ipa {
+            spans.push(Span::styled(format!("  /{ipa}/"), Style::new().fg(DIM)));
+        }
+        spans.push(Span::raw("  "));
+        spans.push(Span::raw(item.meaning.clone()));
         if let Some(note) = &item.note {
             spans.push(Span::styled(format!("  ({note})"), Style::new().fg(DIM)));
         }
@@ -648,6 +651,7 @@ pub mod tests {
         assert!(text.contains("① 预习"), "{text}");
         assert!(text.contains("synthetic line"), "{text}");
         assert!(text.contains("合成的台词"), "{text}");
+        assert!(text.contains("/sɪnˈθɛtɪk ˈlaɪn/"), "{text}");
         assert!(text.contains("示例备注"), "{text}");
         assert!(text.contains("静音模式"), "{text}");
     }

@@ -63,6 +63,9 @@ pub struct Card {
     pub cue: usize,
     pub expression: String,
     pub meaning: String,
+    /// Pronunciation in IPA, without slashes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ipa: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
     /// The sentence text, kept in case the subtitle file goes missing.
@@ -136,6 +139,7 @@ mod tests {
             cue: 3,
             expression: "hang out".into(),
             meaning: "一起玩".into(),
+            ipa: Some("hæŋ ˈaʊt".into()),
             note: None,
             sentence: "Wanna hang out?".into(),
             added: 20_000,

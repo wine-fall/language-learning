@@ -440,6 +440,7 @@ impl App {
                 cue: item.cue,
                 expression: item.text.clone(),
                 meaning: item.meaning.clone(),
+                ipa: item.ipa.clone(),
                 note: item.note.clone(),
                 sentence,
                 added: today,
@@ -712,7 +713,7 @@ pub mod tests {
     pub fn synthetic_words() -> WordsFile {
         WordsFile::parse(
             r#"{"items":[
-              {"cue":1,"text":"synthetic line","meaning":"合成的台词"},
+              {"cue":1,"text":"synthetic line","ipa":"sɪnˈθɛtɪk ˈlaɪn","meaning":"合成的台词"},
               {"cue":2,"text":"line number","meaning":"行号","note":"示例备注"},
               {"cue":2,"text":"this is","meaning":"这是"}
             ]}"#,
