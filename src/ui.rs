@@ -695,14 +695,20 @@ pub mod tests {
         assert!(text.contains("字幕已关"), "{text}");
         assert!(!text.contains("This is synthetic"), "{text}");
         assert!(text.contains("本句有 1 个重点表达"), "{text}");
-        assert!(!text.contains("合成的台词"), "no gloss before the text: {text}");
+        assert!(
+            !text.contains("合成的台词"),
+            "no gloss before the text: {text}"
+        );
 
         app.on_key(KeyCode::Char('c'));
         let text = text_of(&render(100, 20, |f| draw(f, &app)));
         assert!(text.contains("This is synthetic line number 1."), "{text}");
         assert!(text.contains("1 ☆ synthetic line"), "{text}");
         assert!(text.contains("/sɪnˈθɛtɪk ˈlaɪn/"), "{text}");
-        assert!(text.contains("合成的台词"), "gloss once the text is shown: {text}");
+        assert!(
+            text.contains("合成的台词"),
+            "gloss once the text is shown: {text}"
+        );
     }
 
     #[test]

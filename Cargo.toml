@@ -1,6 +1,6 @@
 [package]
 name = "language-learning"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 rust-version = "1.88"
 description = "Terminal app for intensive English listening practice with spaced-repetition review"
